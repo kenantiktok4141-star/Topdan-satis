@@ -57,7 +57,7 @@ const DEFAULT_PRODUCTS = [
   { id: 'p12', name: 'Basketbol Komanda Çantası', category: 'sport', price: 53, stock: 7, emoji: '🏀' },
 ];
 
-const ADMIN_PIN = '2026';
+const ADMIN_PIN = '4114';
 
 function resizeImageToDataUrl(file, maxWidth = 900, quality = 0.72) {
   return new Promise((resolve, reject) => {
@@ -1039,7 +1039,6 @@ function AdminGate({ value, setValue, onBack, onSuccess }) {
         <Field label="PIN kod" error={error}>
           <TextInput value={value} onChange={e => setValue(e.target.value)} type="password" placeholder="****" inputMode="numeric" />
         </Field>
-        <p className="text-[11px] mb-4" style={{ color: C.sub }}>Demo PIN: {ADMIN_PIN}</p>
         <PrimaryButton full onClick={submit}>Daxil ol</PrimaryButton>
         <button onClick={onBack} className="w-full text-center text-sm font-semibold mt-3" style={{ color: C.sub }}>Geri qayıt</button>
       </div>
