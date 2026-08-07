@@ -1285,4 +1285,3 @@ function PasswordResetRow({ onCancel, onConfirm }) {
       <button onClick={onCancel} className="text-xs font-bold px-3 py-2.5 rounded-lg" style={{ color: C.sub }}>Ləğv et</button>
     </div>
   );
-}
