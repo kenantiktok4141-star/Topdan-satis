@@ -686,8 +686,10 @@ function ProductCard({ product, onAdd }) {
   const outOfStock = product.stock <= 0;
   return (
     <div className="bg-white rounded-2xl p-3 shadow-sm border flex flex-col" style={{ borderColor: C.line }}>
-      <div className="rounded-xl flex items-center justify-center text-4xl mb-2" style={{ background: C.blueSoft, aspectRatio: '1/1' }}>
-        {product.emoji || '🎒'}
+      <div className="rounded-xl flex items-center justify-center text-4xl mb-2 overflow-hidden" style={{ background: C.blueSoft, aspectRatio: '1/1' }}>
+        {product.imageDataUrl
+          ? <img src={product.imageDataUrl} alt={product.name} className="w-full h-full object-cover" />
+          : (product.emoji || '🎒')}
       </div>
       <p className="text-[13px] font-bold leading-snug mb-0.5" style={{ color: C.text }}>{product.name}</p>
       <p className="font-extrabold text-[15px] mb-1" style={{ color: C.blue }}>{money(product.price)}</p>
@@ -734,7 +736,11 @@ function CartScreen({ cartLines, cartTotal, updateCartQty, removeFromCart, setSc
       <div className="flex flex-col gap-3 mb-4">
         {cartLines.map(l => (
           <div key={l.productId} className="bg-white rounded-2xl p-3 flex gap-3 items-center shadow-sm border" style={{ borderColor: C.line }}>
-            <div className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl shrink-0" style={{ background: C.blueSoft }}>{l.product.emoji}</div>
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl shrink-0 overflow-hidden" style={{ background: C.blueSoft }}>
+              {l.product.imageDataUrl
+                ? <img src={l.product.imageDataUrl} alt={l.product.name} className="w-full h-full object-cover" />
+                : l.product.emoji}
+            </div>
             <div className="flex-1 min-w-0">
               <p className="text-[13px] font-bold truncate" style={{ color: C.text }}>{l.product.name}</p>
               <p className="text-xs font-medium" style={{ color: C.sub }}>{money(l.product.price)} / ədəd</p>
@@ -1101,7 +1107,11 @@ function AdminProducts({ products, onSave, onDelete }) {
       <div className="grid sm:grid-cols-2 gap-3">
         {products.map(p => (
           <div key={p.id} className="bg-white rounded-2xl p-3 shadow-sm border flex gap-3" style={{ borderColor: C.line }}>
-            <div className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl shrink-0" style={{ background: C.blueSoft }}>{p.emoji}</div>
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl shrink-0 overflow-hidden" style={{ background: C.blueSoft }}>
+              {p.imageDataUrl
+                ? <img src={p.imageDataUrl} alt={p.name} className="w-full h-full object-cover" />
+                : p.emoji}
+            </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold truncate" style={{ color: C.text }}>{p.name}</p>
               <p className="text-xs" style={{ color: C.sub }}>{p.category === 'school' ? 'Məktəb' : 'Sport'} · {money(p.price)} · Stok: {p.stock}</p>
@@ -1119,9 +1129,46 @@ function AdminProducts({ products, onSave, onDelete }) {
 
 function ProductEditor({ product, onCancel, onSave }) {
   const [p, setP] = useState(product);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef(null);
   const set = (k) => (e) => setP({ ...p, [k]: e.target.value });
+
+  async function handleImageFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { alert('Zəhmət olmasa şəkil formatında fayl yükləyin.'); return; }
+    setUploading(true);
+    try {
+      const dataUrl = await resizeImageToDataUrl(file, 600, 0.75);
+      setP(prev => ({ ...prev, imageDataUrl: dataUrl }));
+    } catch (err) {
+      alert('Şəkil yüklənərkən xəta baş verdi.');
+    }
+    setUploading(false);
+  }
+
   return (
     <div className="bg-white rounded-2xl p-4 shadow-sm border mb-4" style={{ borderColor: C.blue }}>
+      <Field label="Məhsul şəkli">
+        <input ref={fileRef} type="file" accept="image/*" onChange={handleImageFile} className="hidden" />
+        <div className="flex items-center gap-3">
+          <div className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl shrink-0 overflow-hidden border-2" style={{ background: C.blueSoft, borderColor: C.line }}>
+            {p.imageDataUrl
+              ? <img src={p.imageDataUrl} alt="" className="w-full h-full object-cover" />
+              : (p.emoji || '🎒')}
+          </div>
+          <div className="flex-1">
+            <button onClick={() => fileRef.current?.click()} disabled={uploading} className="text-xs font-bold px-3 py-2 rounded-lg border-2" style={{ color: C.blue, borderColor: C.blue }}>
+              {uploading ? 'Yüklənir...' : (p.imageDataUrl ? 'Şəkli dəyiş' : 'Şəkil yüklə')}
+            </button>
+            {p.imageDataUrl && (
+              <button onClick={() => setP(prev => ({ ...prev, imageDataUrl: null }))} className="text-xs font-bold px-3 py-2 rounded-lg ml-2" style={{ color: C.red }}>
+                Sil
+              </button>
+            )}
+          </div>
+        </div>
+      </Field>
       <Field label="Ad"><TextInput value={p.name} onChange={set('name')} /></Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Kateqoriya">
@@ -1130,7 +1177,7 @@ function ProductEditor({ product, onCancel, onSave }) {
             <option value="sport">Sport</option>
           </select>
         </Field>
-        <Field label="Emoji"><TextInput value={p.emoji} onChange={set('emoji')} /></Field>
+        <Field label="Emoji (şəkil yoxdursa)"><TextInput value={p.emoji} onChange={set('emoji')} /></Field>
         <Field label="Qiymət (AZN)"><TextInput type="number" value={p.price} onChange={e => setP({ ...p, price: parseFloat(e.target.value) || 0 })} /></Field>
         <Field label="Stok"><TextInput type="number" value={p.stock} onChange={e => setP({ ...p, stock: parseInt(e.target.value) || 0 })} /></Field>
       </div>
@@ -1285,3 +1332,4 @@ function PasswordResetRow({ onCancel, onConfirm }) {
       <button onClick={onCancel} className="text-xs font-bold px-3 py-2.5 rounded-lg" style={{ color: C.sub }}>Ləğv et</button>
     </div>
   );
+}
